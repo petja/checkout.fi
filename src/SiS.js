@@ -124,4 +124,72 @@ function sendTransaction () {
     })
 }
 
+function requestPayment (payload) {
+    if(!payload.aggregator) throw 'Payment aggregator must be defined'
+    if(!payload.stamp) throw 'Stamp must be defined'
+    if(!payload.reference) throw 'Reference must be defined'
+}
+
+class CheckoutCart {
+
+    constructor (payload = {}) {
+        if(!payload.merchant) throw 'Merchant ID must be defined'
+        if(!payload.stamp) throw 'Payment Stamp must be defined'
+        if(!payload.reference) throw 'Payment Reference must be defined'
+
+        this.aggregator     = payload.merchant
+        this.stamp          = payload.stamp
+        this.reference      = payload.reference
+
+        this.items          = []
+    }
+
+    addItem (description, price, sku, merchantId = this.aggregator) {
+        const item = new CheckoutItem(merchantId, description, price, sku)
+        this.items.push(item)
+        return item
+    }
+
+}
+
+class CheckoutItem {
+
+    constructor (merchantId, description, price, sku) {
+        this.merchantId     = merchantId
+        this.description    = description
+        this.price          = Math.round(price * 100)
+        this._commLeft      = Math.round(price * 100)
+        this.sku            = sku
+        this.commissions    = []
+    }
+
+    addCommission (percent, amount, description, merchantId = this.merchantId) {
+        const commission = Math.round(this.price * percent + amount * 100)
+
+        if(this._commLeft - commission < 0) throw 'No commission left'
+        this._commLeft -= commission
+
+        this.commissions.push({
+            a       : commission,
+            m       : merchantId,
+            d       : description,
+        })
+
+        return commission
+    }
+
+}
+
+
 sendTransaction()
+
+const cart = new CheckoutCart({
+    merchant        : '230197',
+    stamp           : Math.random().toString(),
+    reference       : Math.random().toString(),
+})
+cart.addItem('Museojunalippu Kr-Hy Aikuinen', 25.00, 'TICKET').addCommission(0.95, -1.00)
+cart.addItem('Museojunalippu Kr-Hy Lapsi', 13.00, 'TICKET').addCommission(0.95, -1.00)
+console.log(require('util').inspect(cart, {depth: null, colors: true}))
+
+

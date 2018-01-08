@@ -6,10 +6,6 @@ const macFields = [
     'ADDRESS', 'POSTCODE', 'POSTOFFICE'
 ]
 
-const returnFields = [
-    'VERSION', 'STAMP', 'REFERENCE', 'PAYMENT', 'STATUS', 'ALGORITHM'
-]
-
 const defaultParams = {
     'VERSION'       : '0001',
     'STAMP'         : '', // Unique value
@@ -60,12 +56,15 @@ function initPayment (payload, merchantPublic, merchantSecret) {
     return getPaymentButtons(params)
 }
 
+// Send payment request to CO
+// Receive payment info
 function getPaymentButtons(payload) {
     const formData = new FormData;
     Object.keys(payload).forEach(key => {
         formData.append(key, payload[key])
     })
 
+    // Make the request
     return fetch(API_URL, {
         method      : 'POST',
         body        : formData,
@@ -73,12 +72,16 @@ function getPaymentButtons(payload) {
     }).then(resp => {
         return resp.text()
     }).then(xml => {
-        return parseXML(xml, (err, result) => {
-            console.log(result.trade.paymentURL[0])
-            //console.dir(result)
+        return new Promise((fulfill, reject) => {
+            parseXML(xml, (err, result) => {
+                if (err) return reject(err)
+                fulfill(result.trade.paymentURL[0])
+            })
         })
     })
 }
+
+const returnFields = ['VERSION', 'STAMP', 'REFERENCE', 'PAYMENT', 'STATUS', 'ALGORITHM']
 
 function validateReturnSignature (queryParams, secret) {
     const hashable = returnFields.map(field => {
@@ -108,6 +111,10 @@ function generateHash(form, secret) {
         .digest('hex')
         .toUpperCase()
     )
+}
+
+function requestSiSPayment (payload) {
+    //
 }
 
 module.exports = {
