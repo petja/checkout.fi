@@ -83,13 +83,13 @@ function getPaymentButtons(payload) {
 
 const returnFields = ['VERSION', 'STAMP', 'REFERENCE', 'PAYMENT', 'STATUS', 'ALGORITHM']
 
-function validateReturnSignature (queryParams, secret) {
+function validateReturnSignature (queryParams, auth) {
     const hashable = returnFields.map(field => {
         return queryParams[field]
     }).join('&')
 
     const hash = (
-        crypto.createHmac('sha256', secret)
+        crypto.createHmac('sha256', auth.secretKey)
         .update(hashable)
         .digest('hex')
         .toUpperCase()
