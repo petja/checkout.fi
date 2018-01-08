@@ -43,15 +43,22 @@ const crypto = require('crypto')
 const fetch = require('node-fetch')
 const FormData = require('form-data')
 const parseXML = require('xml2js').parseString
+const URL = require('url')
 
-function initPayment (payload, merchantPublic, merchantSecret) {
+function initPayment (payload, auth) {
+    // Make sure all urls are HTTPS
+    Object.keys(payload.urls).forEach(url => {
+        const obj = new URL(url)
+        if (url.protocol !== 'https:') throw 'Return URL must use HTTPS'
+    })
+
     const params = {
         ...defaultParams,
         ...payload,
-        MERCHANT        : merchantPublic,
+        MERCHANT        : auth.merchantId,
     }
 
-    params.MAC = generateHash(params, merchantSecret)
+    params.MAC = generateHash(params, auth)
 
     return getPaymentButtons(params)
 }
@@ -98,7 +105,7 @@ function validateReturnSignature (queryParams, auth) {
     return (hash === queryParams.MAC)
 }
 
-function generateHash(form, secret) {
+function _generateHash(form, auth) {
     // Get fields in correct order and join them together with "+"-mark
     const hashable = macFields.map(field => {
         return form[field]
@@ -106,15 +113,11 @@ function generateHash(form, secret) {
 
     // Generate SHA-256 digest
     return (
-        crypto.createHmac('sha256', secret)
+        crypto.createHmac('sha256', auth.secretKey)
         .update(hashable)
         .digest('hex')
         .toUpperCase()
     )
-}
-
-function requestSiSPayment (payload) {
-    //
 }
 
 module.exports = {
